@@ -2,112 +2,74 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.*;
-import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.highlight.*;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.FSDirectory;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.File;
 
 public class LuceneHighlighter {
-    private static Analyzer analyzer = new StandardAnalyzer();
-    private static IndexWriterConfig config = new IndexWriterConfig(analyzer);
-    private static Directory ramDirectory = new RAMDirectory();
+    private Searcher searcher;
+    private static final String INDEX_DIRECTORY_PATH = "home\\rafaelfreitas\\Documentos";
 
-    public static void main(String[] args) {
-        Document doc = new Document();
+    public void createIndex() throws Exception {
+        Indexer indexer = new Indexer(INDEX_DIRECTORY_PATH);
+        int maxDoc = indexer.createIndex();
 
-        FieldType type = new FieldType();
-        type.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
-        type.setStored(true);
-        type.setStoreTermVectors(true);
-        type.setTokenized(true);
-        type.setStoreTermVectorOffsets(true);
+        System.out.println("Index Created, total documents indexed: " + maxDoc);
 
-        Field field = new Field("title", "Nam efficitur", type);
-        doc.add(field);
+        indexer.close();
+    }
 
-        Field f = new TextField("content", readFileString("content.txt"), Field.Store.YES);
-        doc.add(f);
+    public void searchIndex(String searchQuery) throws Exception {
+        searcher = new Searcher(INDEX_DIRECTORY_PATH);
+        Analyzer analyzer = new StandardAnalyzer();
 
-        try {
-            IndexWriter indexWriter = new IndexWriter(ramDirectory, config);
-            indexWriter.addDocument(doc);
-            indexWriter.close();
+        QueryParser queryParser = new QueryParser("title", analyzer);
+        Query query = queryParser.parse(searchQuery);
 
-            IndexReader idxReader = DirectoryReader.open(ramDirectory);
-            IndexSearcher idxSearcher = new IndexSearcher(idxReader);
+        TopDocs topDocs = searcher.search(query, 10);
+        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
 
-            Query queryToSearch = new QueryParser("title", analyzer).parse("Nam efficitur");
+        for (ScoreDoc scoreDoc : scoreDocs) {
+            Document document = searcher.getDocument(scoreDoc.doc);
+            String title = document.get("title");
 
-            TopDocs hits = idxSearcher.search(queryToSearch, idxReader.maxDoc());
-            SimpleHTMLFormatter htmlFormatter = new SimpleHTMLFormatter();
-
-            Highlighter highlighter = new Highlighter(htmlFormatter, new QueryScorer(queryToSearch));
-
-            System.out.println("reader maxDoc is " + idxReader.maxDoc());
-            System.out.println("scoreDoc size: " + hits.scoreDocs.length);
-
-            for (int i = 0; i < hits.totalHits.value; i++) {
-                int id = hits.scoreDocs[i].doc;
-
-                Document docHit = idxSearcher.doc(id);
-                String text = docHit.get("content");
-
-                TokenStream tokenStream = TokenSources.getAnyTokenStream(idxReader, id, "content", analyzer);
-                TextFragment[] frag = highlighter.getBestTextFragments(tokenStream, text, false, 4);
-
-                for (TextFragment textFragment : frag) {
-                    if ((textFragment != null) && (textFragment.getScore() > 0)) {
-                        System.out.println((textFragment.toString()));
-                    }
-                }
-
-                System.out.println("começar a destacar o título");
-
-                text = docHit.get("title");
-
-                tokenStream = TokenSources.getAnyTokenStream(
-                        idxSearcher.getIndexReader(), hits.scoreDocs[i].doc,
-                        "title", analyzer);
-
-                frag = highlighter.getBestTextFragments(tokenStream, text, false, 4);
-
-                for (TextFragment textFragment : frag) {
-                    if ((textFragment != null) && (textFragment.getScore() > 0)) {
-                        System.out.println((textFragment.toString()));
-                    }
-                }
-            }
-
-        } catch (IOException | ParseException | InvalidTokenOffsetsException e) {
-            e.printStackTrace();
+            System.out.println(title);
         }
     }
 
-    private static String readFileString(String file) {
-        StringBuffer text = new StringBuffer();
+    public void searchAndHighLightKeywords(String searchQuery) throws Exception {
+        QueryParser queryParser = new QueryParser("title", new StandardAnalyzer());
+        Query query = queryParser.parse(searchQuery);
 
-        try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(new File(file)), StandardCharsets.UTF_8));
-            String line;
+        QueryScorer queryScorer = new QueryScorer(query, "title");
+        Highlighter highlighter = new Highlighter(queryScorer);
 
-            while ((line = in.readLine()) != null) {
-                text.append(line + "\r\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        Fragmenter fragmenter = new SimpleSpanFragmenter(queryScorer);
+        highlighter.setTextFragmenter(fragmenter);
+
+        File indexFile = new File(INDEX_DIRECTORY_PATH);
+        Directory directory = FSDirectory.open(indexFile.toPath());
+        IndexReader indexReader = DirectoryReader.open(directory);
+
+        System.out.println();
+
+        searcher = new Searcher(INDEX_DIRECTORY_PATH);
+        ScoreDoc[] scoreDocs = searcher.search(query, 10).scoreDocs;
+
+        for (ScoreDoc scoreDoc : scoreDocs) {
+            Document document = searcher.getDocument(scoreDoc.doc);
+            String title = document.get("title");
+            TokenStream tokenStream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, "title", document, new StandardAnalyzer());
+            String fragment = highlighter.getBestFragment(tokenStream, title);
+            System.out.println(fragment);
         }
-
-        return text.toString();
     }
 }
