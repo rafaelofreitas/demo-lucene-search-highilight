@@ -16,7 +16,7 @@ import java.io.File;
 
 public class LuceneHighlighter {
     private Searcher searcher;
-    private static final String INDEX_DIRECTORY_PATH = "home\\rafaelfreitas\\Documentos";
+    private static final String INDEX_DIRECTORY_PATH = "index";
 
     public void createIndex() throws Exception {
         Indexer indexer = new Indexer(INDEX_DIRECTORY_PATH);
