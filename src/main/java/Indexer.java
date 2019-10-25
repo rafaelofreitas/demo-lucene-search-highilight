@@ -36,10 +36,9 @@ public class Indexer {
     /**
      * Criação de documentos à serem indexados.
      *
-     * @return IndexWriter
      * @throws Exception
      */
-    protected int createIndex() throws Exception {
+    protected void createIndex() throws Exception {
         String[] titles = {
                 "Lucene In Action",
                 "Hibernate In Action",
@@ -59,8 +58,7 @@ public class Indexer {
         }
 
         indexWriter.commit();
-
-        return indexWriter.numRamDocs();
+        indexWriter.numRamDocs();
     }
 
     protected void close() throws Exception {
