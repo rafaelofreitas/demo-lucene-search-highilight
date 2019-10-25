@@ -17,32 +17,16 @@ import java.util.ArrayList;
 
 public class LuceneHighlighter {
     private Searcher searcher;
-    private String title;
-    private int maxDoc;
     private ArrayList<String> fragment = new ArrayList<>();
-    private ScoreDoc[] scoreDocs;
+    private ArrayList<String> matching = new ArrayList<>();
     private static final String INDEX_DIRECTORY_PATH = "index";
-
-    public String getTitle() {
-        return this.title;
-    }
-
-    public int getMaxDoc() {
-        return this.maxDoc;
-    }
 
     public ArrayList<String> getFragment() {
         return this.fragment;
     }
 
-    public ScoreDoc[] getScoreDoc() {
-        return this.scoreDocs;
-    }
-
-    public void createIndex() throws Exception {
-        Indexer indexer = new Indexer(INDEX_DIRECTORY_PATH);
-        this.maxDoc = indexer.createIndex();
-        indexer.close();
+    public ArrayList<String> getWordsFound() {
+        return this.matching;
     }
 
     public int getStartPosition(String fragment) {
@@ -55,20 +39,10 @@ public class LuceneHighlighter {
         return endPosition - 1;
     }
 
-    public void searchIndex(String searchQuery) throws Exception {
-        searcher = new Searcher(INDEX_DIRECTORY_PATH);
-        Analyzer analyzer = new StandardAnalyzer();
-
-        QueryParser queryParser = new QueryParser("title", analyzer);
-        Query query = queryParser.parse(searchQuery);
-
-        TopDocs topDocs = searcher.search(query, 10);
-        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-
-        for (ScoreDoc scoreDoc : scoreDocs) {
-            Document document = searcher.getDocument(scoreDoc.doc);
-            this.title = document.get("title");
-        }
+    public void createIndex() throws Exception {
+        Indexer indexer = new Indexer(INDEX_DIRECTORY_PATH);
+        indexer.createIndex();
+        indexer.close();
     }
 
     public void searchWithHighLightKeywords(String searchQuery) throws Exception {
@@ -87,14 +61,33 @@ public class LuceneHighlighter {
         IndexReader indexReader = DirectoryReader.open(directory);
 
         searcher = new Searcher(INDEX_DIRECTORY_PATH);
-        this.scoreDocs = searcher.search(query, 10).scoreDocs;
+        ScoreDoc[] scoreDocs = searcher.search(query, 10).scoreDocs;
 
         for (ScoreDoc scoreDoc : scoreDocs) {
             Document document = searcher.getDocument(scoreDoc.doc);
             String title = document.get("title");
             TokenStream tokenStream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, "title", document, new StandardAnalyzer());
             String textTop = highlighter.getBestFragment(tokenStream, title);
+
             this.fragment.add(textTop);
+        }
+    }
+
+    public void searchIndex(String searchQuery) throws Exception {
+        searcher = new Searcher(INDEX_DIRECTORY_PATH);
+        Analyzer analyzer = new StandardAnalyzer();
+
+        QueryParser queryParser = new QueryParser("title", analyzer);
+        Query query = queryParser.parse(searchQuery);
+
+        TopDocs topDocs = searcher.search(query, 10);
+        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+
+        for (ScoreDoc scoreDoc : scoreDocs) {
+            Document document = searcher.getDocument(scoreDoc.doc);
+            String textTop = document.get("title");
+
+            matching.add(textTop);
         }
     }
 }

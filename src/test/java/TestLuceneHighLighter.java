@@ -2,6 +2,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 
+import static org.junit.Assert.assertEquals;
+
 public class TestLuceneHighLighter {
 
     @Test
@@ -15,8 +17,9 @@ public class TestLuceneHighLighter {
         if (fragment.size() == 1) {
             int startPosition = luceneHighlighter.getStartPosition(fragment.get(0));
             int endPosition = luceneHighlighter.getEndPosition(fragment.get(0));
-            System.out.println(startPosition);
-            System.out.println(endPosition);
+
+            assertEquals(17, startPosition);
+            assertEquals(23, endPosition);
         }
     }
 
@@ -25,7 +28,16 @@ public class TestLuceneHighLighter {
         String searchQuery = "Java Changed";
         LuceneHighlighter luceneHighlighter = new LuceneHighlighter();
         luceneHighlighter.createIndex();
-
         luceneHighlighter.searchIndex(searchQuery);
+        ArrayList<String> matching = luceneHighlighter.getWordsFound();
+
+        ArrayList<String> words = new ArrayList<>();
+        words.add("Action that Changed the World");
+        words.add("Java In Action");
+        words.add("How To Java");
+
+        for (int i = 0; i < words.size(); i++) {
+            assertEquals(words.get(i), matching.get(i));
+        }
     }
 }
