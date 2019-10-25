@@ -13,18 +13,46 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class LuceneHighlighter {
     private Searcher searcher;
+    private String title;
+    private int maxDoc;
+    private ArrayList<String> fragment = new ArrayList<>();
+    private ScoreDoc[] scoreDocs;
     private static final String INDEX_DIRECTORY_PATH = "index";
+
+    public String getTitle() {
+        return this.title;
+    }
+
+    public int getMaxDoc() {
+        return this.maxDoc;
+    }
+
+    public ArrayList<String> getFragment() {
+        return this.fragment;
+    }
+
+    public ScoreDoc[] getScoreDoc() {
+        return this.scoreDocs;
+    }
 
     public void createIndex() throws Exception {
         Indexer indexer = new Indexer(INDEX_DIRECTORY_PATH);
-        int maxDoc = indexer.createIndex();
-
-        System.out.println("Index Created, total documents indexed: " + maxDoc);
-
+        this.maxDoc = indexer.createIndex();
         indexer.close();
+    }
+
+    public int getStartPosition(String fragment) {
+        int startPosition = fragment.indexOf("<pre>");
+        return startPosition + 5;
+    }
+
+    public int getEndPosition(String fragment) {
+        int endPosition = fragment.indexOf("<pro>");
+        return endPosition - 1;
     }
 
     public void searchIndex(String searchQuery) throws Exception {
@@ -39,18 +67,17 @@ public class LuceneHighlighter {
 
         for (ScoreDoc scoreDoc : scoreDocs) {
             Document document = searcher.getDocument(scoreDoc.doc);
-            String title = document.get("title");
-
-            System.out.println(title);
+            this.title = document.get("title");
         }
     }
 
-    public void searchAndHighLightKeywords(String searchQuery) throws Exception {
+    public void searchWithHighLightKeywords(String searchQuery) throws Exception {
         QueryParser queryParser = new QueryParser("title", new StandardAnalyzer());
         Query query = queryParser.parse(searchQuery);
 
         QueryScorer queryScorer = new QueryScorer(query, "title");
-        Highlighter highlighter = new Highlighter(queryScorer);
+        SimpleHTMLFormatter htmlFormatter = new SimpleHTMLFormatter("<pre>", "<pro>");
+        Highlighter highlighter = new Highlighter(htmlFormatter, queryScorer);
 
         Fragmenter fragmenter = new SimpleSpanFragmenter(queryScorer);
         highlighter.setTextFragmenter(fragmenter);
@@ -59,17 +86,15 @@ public class LuceneHighlighter {
         Directory directory = FSDirectory.open(indexFile.toPath());
         IndexReader indexReader = DirectoryReader.open(directory);
 
-        System.out.println();
-
         searcher = new Searcher(INDEX_DIRECTORY_PATH);
-        ScoreDoc[] scoreDocs = searcher.search(query, 10).scoreDocs;
+        this.scoreDocs = searcher.search(query, 10).scoreDocs;
 
         for (ScoreDoc scoreDoc : scoreDocs) {
             Document document = searcher.getDocument(scoreDoc.doc);
             String title = document.get("title");
             TokenStream tokenStream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, "title", document, new StandardAnalyzer());
-            String fragment = highlighter.getBestFragment(tokenStream, title);
-            System.out.println(fragment);
+            String textTop = highlighter.getBestFragment(tokenStream, title);
+            this.fragment.add(textTop);
         }
     }
 }

@@ -12,18 +12,18 @@ import java.io.File;
 public class Searcher {
     private IndexSearcher indexSearcher;
 
-    public Searcher(String indexerDirectoryPath) throws Exception {
+    protected Searcher(String indexerDirectoryPath) throws Exception {
         File indexFile = new File(indexerDirectoryPath);
         Directory directory = FSDirectory.open(indexFile.toPath());
         IndexReader indexReader = DirectoryReader.open(directory);
         indexSearcher = new IndexSearcher(indexReader);
     }
 
-    public TopDocs search(Query query, int n) throws Exception {
+    protected TopDocs search(Query query, int n) throws Exception {
         return indexSearcher.search(query, n);
     }
 
-    public Document getDocument(int docID) throws Exception {
+    protected Document getDocument(int docID) throws Exception {
         return indexSearcher.doc(docID);
     }
 }
