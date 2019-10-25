@@ -1,5 +1,6 @@
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import model.Constant;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.br.BrazilianAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.TextField;
@@ -11,6 +12,8 @@ import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
 
+import static model.Constant.INDEX_DIRECTORY_PATH;
+
 /**
  * Classe para controle do índice.
  */
@@ -20,15 +23,16 @@ public class Indexer {
     /**
      * O construtor instancia o objeto IndexWriter que é usado para criar o índice.
      *
-     * @param indexerDirectoryPath
      * @throws Exception
      */
-    protected Indexer(String indexerDirectoryPath) throws Exception {
-        Analyzer analyzer = new StandardAnalyzer();
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
+    protected Indexer() throws Exception {
+        CharArraySet brArraySet = new CharArraySet(Constant.DEFAULT_REMOVED_WORDS, true);
+        BrazilianAnalyzer brazilianAnalyzer = new BrazilianAnalyzer(brArraySet);
+
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(brazilianAnalyzer);
         indexWriterConfig.setOpenMode(OpenMode.CREATE);
 
-        File indexFile = new File(indexerDirectoryPath);
+        File indexFile = new File(INDEX_DIRECTORY_PATH);
         Directory directory = FSDirectory.open(indexFile.toPath());
         indexWriter = new IndexWriter(directory, indexWriterConfig);
     }
@@ -40,19 +44,37 @@ public class Indexer {
      */
     protected void createIndex() throws Exception {
         String[] titles = {
-                "Lucene In Action",
-                "Hibernate In Action",
-                "Java In Action",
-                "Action Script",
-                "Action that Changed the World",
-                "How To Java",
-                "How To C++",
-                "Anroid In Action"
+                "Lucene em Ação",
+                "Hibernate em Ação",
+                "Java em Ação",
+                "Script em Ação",
+                "Ação que mudou o mundo",
+                "Como o Java",
+                "Como o C++",
+                "Anroid em Ação",
+                "linguagem"
+        };
+
+        String[] languages = {
+                "java",
+                "Python",
+                "Ruby",
+                "JS",
+                "C++",
+                "C",
+                "Go"
         };
 
         for (String title : titles) {
             Document document = new Document();
-            document.add(new TextField("title", title, Store.YES));
+            document.add(new TextField("titles", title, Store.YES));
+
+            indexWriter.addDocument(document);
+        }
+
+        for (String language : languages) {
+            Document document = new Document();
+            document.add(new TextField("languages", language, Store.YES));
 
             indexWriter.addDocument(document);
         }

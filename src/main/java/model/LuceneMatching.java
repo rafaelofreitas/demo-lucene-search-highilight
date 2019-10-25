@@ -1,31 +1,59 @@
 package model;
 
-import java.util.ArrayList;
-
 public class LuceneMatching {
-    private ArrayList<String> taggedPhrases;
-    private ArrayList<String> matching;
+    private String query;
+    private String originalPhrase = "";
+    private String phraseWithMarkup;
+    private String indexedPhrase;
+    private int startPosition;
+    private int endPosition;
 
-    public LuceneMatching(ArrayList<String> taggedPhrases, ArrayList<String> matching) {
-        this.taggedPhrases = taggedPhrases;
-        this.matching = matching;
+    public LuceneMatching(String phraseWithMarkup, String indexedPhrase, String query) {
+        this.indexedPhrase = indexedPhrase;
+        this.phraseWithMarkup = phraseWithMarkup;
+        this.query = query;
+
+        this.setStartPosition(phraseWithMarkup);
+        this.setEndPosition(phraseWithMarkup);
+        this.setOriginalPhrase(phraseWithMarkup);
     }
 
-    public ArrayList<String> getTaggedPhrases() {
-        return this.taggedPhrases;
+    public String getOriginalPhrase() {
+        return this.originalPhrase;
     }
 
-    public ArrayList<String> getWordsFound() {
-        return this.matching;
+    public String getPhraseWithMarkup() {
+        return this.phraseWithMarkup;
     }
 
-    public int getStartPosition(String phraseWithMarkup) {
-        int startPosition = phraseWithMarkup.indexOf("<pre>");
-        return startPosition + 5;
+    public String getQuery() {
+        return query;
     }
 
-    public int getEndPosition(String phraseWithMarkup) {
-        int endPosition = phraseWithMarkup.indexOf("<pro>");
-        return endPosition - 1;
+    public String getIndexedPhrase() {
+        return this.indexedPhrase;
+    }
+
+    public int getStartPosition() {
+        return this.startPosition;
+    }
+
+    public int getEndPosition() {
+        return this.endPosition;
+    }
+
+    private void setOriginalPhrase(String phraseWithMarkup) {
+        String tmp = (String) phraseWithMarkup.subSequence(this.startPosition, this.endPosition);
+        int startIndex = this.query.indexOf(tmp.toLowerCase());
+        this.originalPhrase = (String) query.subSequence(startIndex, tmp.length());
+    }
+
+    private void setStartPosition(String phraseWithMarkup) {
+        int tmp = phraseWithMarkup.indexOf("<pre>");
+        this.startPosition = tmp + 5;
+    }
+
+    private void setEndPosition(String phraseWithMarkup) {
+        this.endPosition = phraseWithMarkup.indexOf("<pro>");
     }
 }

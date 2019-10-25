@@ -1,6 +1,8 @@
+import model.Constant;
 import model.LuceneMatching;
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.br.BrazilianAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -14,17 +16,19 @@ import org.apache.lucene.store.FSDirectory;
 import java.io.File;
 import java.util.ArrayList;
 
+import static model.Constant.INDEX_DIRECTORY_PATH;
+
 public class LuceneHighlighter {
-    private static final String INDEX_DIRECTORY_PATH = "index";
 
-    public LuceneMatching searchWithHighLightKeywords(String searchQuery) throws Exception {
-        this.createIndex();
-
-        QueryParser queryParser = new QueryParser("title", new StandardAnalyzer());
+    public ArrayList<LuceneMatching> searchWithHighLightKeywords(String searchQuery, String field) throws Exception {
+        CharArraySet brArraySet = new CharArraySet(Constant.DEFAULT_REMOVED_WORDS, true);
+        QueryParser queryParser = new QueryParser(field, new BrazilianAnalyzer(brArraySet));
         Query query = queryParser.parse(searchQuery);
 
-        QueryScorer queryScorer = new QueryScorer(query, "title");
+        this.createIndex();
+
         SimpleHTMLFormatter htmlFormatter = new SimpleHTMLFormatter("<pre>", "<pro>");
+        QueryScorer queryScorer = new QueryScorer(query, field);
         Highlighter highlighter = new Highlighter(htmlFormatter, queryScorer);
 
         Fragmenter fragmenter = new SimpleSpanFragmenter(queryScorer);
@@ -35,26 +39,24 @@ public class LuceneHighlighter {
         IndexReader indexReader = DirectoryReader.open(directory);
 
         Searcher searcher = new Searcher(INDEX_DIRECTORY_PATH);
-        ScoreDoc[] scoreDocs = searcher.search(query, 10).scoreDocs;
+        ScoreDoc[] scoreDocs = searcher.search(query, 50).scoreDocs;
 
-        ArrayList<String> matching = new ArrayList<>();
-        ArrayList<String> taggedPhrases = new ArrayList<>();
-
+        ArrayList<LuceneMatching> matchings = new ArrayList<>();
         for (ScoreDoc scoreDoc : scoreDocs) {
             Document document = searcher.getDocument(scoreDoc.doc);
-            String title = document.get("title");
-            matching.add(title);
-            TokenStream tokenStream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, "title", document, new StandardAnalyzer());
-            String markedText = highlighter.getBestFragment(tokenStream, title);
+            String indexedPhrase = document.get(field);
 
-            taggedPhrases.add(markedText);
+            TokenStream tokenStream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, field, document, new BrazilianAnalyzer(brArraySet));
+            String taggedPhrase = highlighter.getBestFragment(tokenStream, indexedPhrase);
+
+            matchings.add(new LuceneMatching(taggedPhrase, indexedPhrase, searchQuery));
         }
 
-        return new LuceneMatching(taggedPhrases, matching);
+        return matchings;
     }
 
     private void createIndex() throws Exception {
-        Indexer indexer = new Indexer(INDEX_DIRECTORY_PATH);
+        Indexer indexer = new Indexer();
         indexer.createIndex();
         indexer.close();
     }
