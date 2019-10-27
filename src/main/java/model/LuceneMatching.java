@@ -2,20 +2,19 @@ package model;
 
 public class LuceneMatching {
     private String query;
-    private String originalPhrase = "";
+    private String originalPhrase;
     private String phraseWithMarkup;
     private String indexedPhrase;
     private int startPosition;
     private int endPosition;
 
-    public LuceneMatching(String phraseWithMarkup, String indexedPhrase, String query) {
-        this.indexedPhrase = indexedPhrase;
-        this.phraseWithMarkup = phraseWithMarkup;
+    public LuceneMatching(String query, String phraseWithMarkup, String indexedPhrase) {
         this.query = query;
+        this.phraseWithMarkup = phraseWithMarkup;
+        this.indexedPhrase = indexedPhrase;
 
-        this.setStartPosition(phraseWithMarkup);
-        this.setEndPosition(phraseWithMarkup);
-        this.setOriginalPhrase(phraseWithMarkup);
+        this.setStartAndEndPosition(phraseWithMarkup);
+        this.setOriginalPhrase();
     }
 
     public String getOriginalPhrase() {
@@ -42,18 +41,18 @@ public class LuceneMatching {
         return this.endPosition;
     }
 
-    private void setOriginalPhrase(String phraseWithMarkup) {
-        String tmp = (String) phraseWithMarkup.subSequence(this.startPosition, this.endPosition);
-        int startIndex = this.query.indexOf(tmp.toLowerCase());
-        this.originalPhrase = (String) query.subSequence(startIndex, tmp.length());
+    private void setOriginalPhrase() {
+        this.originalPhrase = (String) query.subSequence(this.startPosition, this.endPosition);
     }
 
-    private void setStartPosition(String phraseWithMarkup) {
+    private void setStartAndEndPosition(String phraseWithMarkup) {
         int tmp = phraseWithMarkup.indexOf("<pre>");
-        this.startPosition = tmp + 5;
-    }
+        int startIndex = tmp + 5;
+        int endIndex = phraseWithMarkup.indexOf("<pro>");
 
-    private void setEndPosition(String phraseWithMarkup) {
-        this.endPosition = phraseWithMarkup.indexOf("<pro>");
+        String phrase = (String) phraseWithMarkup.subSequence(startIndex, endIndex);
+
+        this.startPosition = this.query.indexOf(phrase.toLowerCase());
+        this.endPosition = this.startPosition + phrase.length();
     }
 }

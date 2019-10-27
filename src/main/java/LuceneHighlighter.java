@@ -49,7 +49,7 @@ public class LuceneHighlighter {
             TokenStream tokenStream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, field, document, new BrazilianAnalyzer(brArraySet));
             String taggedPhrase = highlighter.getBestFragment(tokenStream, indexedPhrase);
 
-            matchings.add(new LuceneMatching(taggedPhrase, indexedPhrase, searchQuery));
+            matchings.add(new LuceneMatching(searchQuery, taggedPhrase, indexedPhrase));
         }
 
         return matchings;
