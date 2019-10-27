@@ -9,7 +9,7 @@ public class LuceneMatching {
     private int endPosition;
 
     public LuceneMatching(String query, String phraseWithMarkup, String indexedPhrase) {
-        this.query = query;
+        this.query = query.toLowerCase();
         this.phraseWithMarkup = phraseWithMarkup;
         this.indexedPhrase = indexedPhrase;
 

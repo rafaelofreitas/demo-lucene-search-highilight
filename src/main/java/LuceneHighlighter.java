@@ -41,7 +41,8 @@ public class LuceneHighlighter {
         Searcher searcher = new Searcher(INDEX_DIRECTORY_PATH);
         ScoreDoc[] scoreDocs = searcher.search(query, 50).scoreDocs;
 
-        ArrayList<LuceneMatching> matchings = new ArrayList<>();
+        ArrayList<LuceneMatching> luceneMatch = new ArrayList<>();
+
         for (ScoreDoc scoreDoc : scoreDocs) {
             Document document = searcher.getDocument(scoreDoc.doc);
             String indexedPhrase = document.get(field);
@@ -49,10 +50,10 @@ public class LuceneHighlighter {
             TokenStream tokenStream = TokenSources.getAnyTokenStream(indexReader, scoreDoc.doc, field, document, new BrazilianAnalyzer(brArraySet));
             String taggedPhrase = highlighter.getBestFragment(tokenStream, indexedPhrase);
 
-            matchings.add(new LuceneMatching(searchQuery, taggedPhrase, indexedPhrase));
+            luceneMatch.add(new LuceneMatching(searchQuery, taggedPhrase, indexedPhrase));
         }
 
-        return matchings;
+        return luceneMatch;
     }
 
     private void createIndex() throws Exception {

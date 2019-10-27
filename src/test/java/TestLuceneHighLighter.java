@@ -11,34 +11,42 @@ public class TestLuceneHighLighter {
     public void textHighLighter() throws Exception {
         String searchQuery = "Java";
         LuceneHighlighter luceneHighlighter = new LuceneHighlighter();
-        ArrayList<LuceneMatching> luceneMatchings = luceneHighlighter.searchWithHighLightKeywords(searchQuery, "languages");
+        ArrayList<LuceneMatching> luceneMatch = luceneHighlighter.searchWithHighLightKeywords(searchQuery, "languages");
 
-        ArrayList<String> words = new ArrayList<>();
-        words.add("Java em Ação");
-        words.add("Como o Java");
+        assertEquals("java", luceneMatch.get(0).getIndexedPhrase());
 
-        for (int i = 0; i < words.size(); i++) {
-            assertEquals(words.get(i), luceneMatchings.get(i).getIndexedPhrase());
-        }
-
-        if (luceneMatchings.size() == 1) {
-
-            assertEquals(17, luceneMatchings.get(0).getStartPosition());
-            assertEquals(23, luceneMatchings.get(0).getEndPosition());
-        }
+        assertEquals(0, luceneMatch.get(0).getStartPosition());
+        assertEquals(4, luceneMatch.get(0).getEndPosition());
     }
 
     @Test
     public void textHighLighter2() throws Exception {
         String searchQuery = "linguagem java";
         LuceneHighlighter luceneHighlighter = new LuceneHighlighter();
-        ArrayList<LuceneMatching> luceneMatchings = luceneHighlighter.searchWithHighLightKeywords(searchQuery, "titles");
+        ArrayList<LuceneMatching> luceneMatch = luceneHighlighter.searchWithHighLightKeywords(searchQuery, "titles");
 
-        assertEquals("linguagem", luceneMatchings.get(0).getIndexedPhrase());
+        class Indexes{
+            public int starIndex;
+            public int endIndex;
+            public String phrase;
 
-        for (int i = 0; i < luceneMatchings.size(); i++) {
-            System.out.println(luceneMatchings.get(i).getStartPosition());
-            System.out.println(luceneMatchings.get(i).getEndPosition());
+            Indexes(int starIndex, int endIndex, String phrase){
+                this.starIndex = starIndex;
+                this.endIndex = endIndex;
+                this.phrase = phrase;
+            }
+        }
+
+        ArrayList array = new ArrayList<>();
+        array.add(new Indexes(0, 9, "linguagem"));
+        array.add(new Indexes(10, 14, "java"));
+        array.add(new Indexes(10, 14, "java"));
+
+        for (int i = 0; i < luceneMatch.size(); i++) {
+            Indexes indexes = (Indexes) array.get(i);
+            assertEquals(indexes.starIndex, luceneMatch.get(i).getStartPosition());
+            assertEquals(indexes.endIndex, luceneMatch.get(i).getEndPosition());
+            assertEquals(indexes.phrase, luceneMatch.get(i).getOriginalPhrase());
         }
     }
 }
